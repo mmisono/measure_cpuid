@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 // cf.
@@ -31,21 +32,30 @@ static inline uint64_t __tsc_end(void)
     return ((uint64_t)(cycles_high) << 32) | (uint64_t)(cycles_low);
 }
 
-static inline void cpuid() {
-    asm volatile(
-        "cpuid\n\t"
-        :
-        :
-        : "%rax", "%rbx", "%rcx", "%rdx");
+static inline void cpuid(uint64_t rax, uint64_t rcx){
+    uint64_t rbx, rdx;
+    asm volatile( "cpuid\n\t"
+        : "=a"(rax), "=b"(rbx), "=c"(rcx), "=d"(rdx)
+        : "a"(rax), "c"(rcx)
+        : );
 }
 
 #define N 10000
 uint64_t time[N];
 int main(int argc, char* argv[]) {
+
+    if (argc < 3) {
+        printf("Usage: %s <rax> <rcx>\n", argv[0]);
+        return 0;
+    }
+
+    uint64_t rax = atoi(argv[1]);
+    uint64_t rcx = atoi(argv[2]);
+
     int i;
     for (i = 0; i < N; i++) {
         uint64_t start = __tsc_start();
-        cpuid();
+        cpuid(rax, rcx);
         uint64_t end = __tsc_end();
         time[i] = end - start;
     }
